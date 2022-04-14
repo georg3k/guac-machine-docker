@@ -1,0 +1,60 @@
+version: '2.0'
+
+networks:
+  guacnetwork:
+    driver: bridge
+
+services:
+  # RDP receiver daemon
+  guacd:
+    container_name: guacd
+    image: guacamole/guacd
+    networks:
+      guacnetwork:
+    restart: always
+    volumes:
+    - guac_drive:/drive:rw
+    - guac_record:/record:rw
+  
+  # guacamole authentication database
+  # note: initialization required
+  postgres:
+    container_name: postgres_guacamole
+    environment:
+      PGDATA: /var/lib/postgresql/data/guacamole
+      POSTGRES_DB: guacamole_db
+      POSTGRES_PASSWORD: guacpaswd
+      POSTGRES_USER: guacamole_user
+    image: postgres:13.4
+    networks:
+      guacnetwork:
+    restart: always
+    volumes:
+    - guac_postgres:/var/lib/postgresql/data:rw
+    - ./initdb.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # guacamole front-end
+  guacamole:
+    container_name: guacamole
+    depends_on:
+    - guacd
+    - postgres
+    environment:
+      GUACD_HOSTNAME: guacd
+      POSTGRES_DATABASE: guacamole_db
+      POSTGRES_HOSTNAME: postgres
+      POSTGRES_PASSWORD: guacpaswd
+      POSTGRES_USER: guacamole_user
+    image: guacamole/guacamole
+    links:
+    - guacd
+    networks:
+      guacnetwork:
+    ports:
+    - 8080:8080/tcp
+    restart: always
+
+volumes:
+  guac_drive:
+  guac_record:
+  guac_postgres:
