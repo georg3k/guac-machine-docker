@@ -54,6 +54,13 @@ services:
     - 8080:8080/tcp
     restart: always
 
+  # containerized application
+  machine:
+    build: .
+    networks:
+      guacnetwork:
+    restart: always
+
 volumes:
   guac_drive:
   guac_record:
